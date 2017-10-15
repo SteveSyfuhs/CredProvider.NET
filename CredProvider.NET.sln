@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2002
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CredProvider.NET.Tester", "CredProvider.NET.Tester\CredProvider.NET.Tester.csproj", "{706BBFD0-3DCB-4BD7-A145-EA2751F1D5B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CredProvider.NET", "CredProvider.NET\CredProvider.NET.csproj", "{EDD905A1-1C64-4DB4-8E21-A66F70903FBD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{706BBFD0-3DCB-4BD7-A145-EA2751F1D5B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{706BBFD0-3DCB-4BD7-A145-EA2751F1D5B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{706BBFD0-3DCB-4BD7-A145-EA2751F1D5B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{706BBFD0-3DCB-4BD7-A145-EA2751F1D5B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDD905A1-1C64-4DB4-8E21-A66F70903FBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDD905A1-1C64-4DB4-8E21-A66F70903FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDD905A1-1C64-4DB4-8E21-A66F70903FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDD905A1-1C64-4DB4-8E21-A66F70903FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3ACAD512-3DFE-4263-A1CC-41F8F0D78209}
+	EndGlobalSection
+EndGlobal
