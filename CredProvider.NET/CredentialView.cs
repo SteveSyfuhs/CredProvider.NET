@@ -1,4 +1,4 @@
-﻿using CredProvider.NET.Interop;
+﻿using CredProvider.NET.Interop2;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -19,17 +19,24 @@ namespace CredProvider.NET
         private readonly List<CredentialDescriptor> fields
             = new List<CredentialDescriptor>();
 
+        public CredentialProviderBase Provider { get; private set; }
+
+        public const string CPFG_LOGON_PASSWORD_GUID = "60624cfa-a477-47b1-8a8e-3a4a19981827";
+        public const string CPFG_CREDENTIAL_PROVIDER_LOGO = "2d837775-f6cd-464e-a745-482fd0b47493";
+        public const string CPFG_CREDENTIAL_PROVIDER_LABEL = "286bbff3-bad4-438f-b007-79b7267c3d48";
+
         public bool Active { get; set; }
 
         public int DescriptorCount { get { return fields.Count; } }
 
         public virtual int CredentialCount { get { return 1; } }
 
-        public virtual int DefaultCredential { get { return 0; } }
+        public virtual int DefaultCredential { get { return 0; } }        
 
-        public readonly static CredentialView NotActive = new CredentialView { Active = false };
-
-        public CredentialView() { }
+        public CredentialView(CredentialProviderBase provider) 
+        {
+            Provider = provider;
+        }
 
         public virtual void AddField(
             _CREDENTIAL_PROVIDER_FIELD_TYPE cpft,
@@ -93,7 +100,11 @@ namespace CredProvider.NET
             out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis
         )
         {
+            Logger.Write();
+
             var field = fields[dwFieldId];
+
+            Logger.Write($"Returning field state: {field.State}, interactiveState: None");
 
             pcpfs = field.State;
             pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
@@ -104,15 +115,22 @@ namespace CredProvider.NET
 
         public virtual ICredentialProviderCredential CreateCredential(int dwIndex)
         {
+            Logger.Write();
+
             if (credentials.TryGetValue(dwIndex, out ICredentialProviderCredential credential))
             {
+                Logger.Write("Returning existing credential.");
                 return credential;
             }
 
-            credential = new CredentialProviderCredential(this);
+            //Get the sid for this credential from the index
+            var sid = this.Provider.GetUserSid(dwIndex);
+
+            credential = new CredentialProviderCredential(this, sid);
 
             credentials[dwIndex] = credential;
 
+            Logger.Write("Returning new credential.");
             return credential;
         }
     }

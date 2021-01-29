@@ -1,9 +1,11 @@
-﻿using CredProvider.NET.Interop;
+﻿using CredProvider.NET.Interop2;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using static CredProvider.NET.Constants;
 
@@ -12,10 +14,14 @@ namespace CredProvider.NET
     public class CredentialProviderCredential : ICredentialProviderCredential2
     {
         private readonly CredentialView view;
+        private string sid;
 
-        public CredentialProviderCredential(CredentialView view)
+        public CredentialProviderCredential(CredentialView view, string sid)
         {
+            Logger.Write();
+
             this.view = view;
+            this.sid = sid;
         }
 
         public virtual int Advise(ICredentialProviderCredentialEvents pcpce)
@@ -41,7 +47,8 @@ namespace CredProvider.NET
         {
             Logger.Write();
 
-            pbAutoLogon = 1;
+            //Set this to 1 if you would like GetSerialization called immediately on selection
+            pbAutoLogon = 0;
 
             return HRESULT.S_OK;
         }
@@ -85,7 +92,7 @@ namespace CredProvider.NET
             {
                 TryLoadUserIcon();
             }
-            catch (Exception ex)
+            catch (Exception ex) 
             {
                 Logger.Write("Error: " + ex);
             }
@@ -99,18 +106,11 @@ namespace CredProvider.NET
         {
             if (tileIcon == null)
             {
-                using (var web = new WebClient())
-                {
-                    var bytes = web.DownloadData("https://syfuhs.blob.core.windows.net/images/2015/12/mad.jpg");
+                var fileName = "CredProvider.NET.tile-icon.bmp";
+                var assembly = Assembly.GetExecutingAssembly();
+                var stream = assembly.GetManifestResourceStream(fileName);
 
-                    var image = Image.FromStream(new MemoryStream(bytes));
-
-                    var imageStream = new MemoryStream();
-                    image.Save(imageStream, ImageFormat.Bmp);
-                    imageStream.Seek(0, SeekOrigin.Begin);
-
-                    tileIcon = new Bitmap(imageStream);
-                }
+                tileIcon = (Bitmap)Image.FromStream(stream);
             }
         }
 
@@ -156,6 +156,8 @@ namespace CredProvider.NET
         {
             Logger.Write($"dwFieldID: {dwFieldID}; psz: {psz}");
 
+            view.SetValue((int) dwFieldID, psz);
+
             return HRESULT.S_OK;
         }
 
@@ -189,11 +191,69 @@ namespace CredProvider.NET
         {
             Logger.Write();
 
+            var usage = this.view.Provider.GetUsage();
+
             pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-            pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
+            pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION();
             ppszOptionalStatusText = "";
             pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_NONE;
 
+            //Serialization can be called before the user has entered any values. Only applies to logon usage scenarios
+            if (usage == _CREDENTIAL_PROVIDER_USAGE_SCENARIO.CPUS_LOGON || usage == _CREDENTIAL_PROVIDER_USAGE_SCENARIO.CPUS_UNLOCK_WORKSTATION)
+            {
+                //Determine the authentication package
+                Common.RetrieveNegotiateAuthPackage(out var authPackage);
+
+                //Only credential packing for msv1_0 is supported using this code
+                Logger.Write($"Got authentication package: {authPackage}. Only local authenticsation package 0 (msv1_0) is supported.");
+
+                //Get username and password
+                var username = Common.GetNameFromSid(this.sid);
+                GetStringValue(2, out var password);
+
+                Logger.Write($"Preparing to serialise credential with password...");
+                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_RETURN_CREDENTIAL_FINISHED;
+                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION();
+
+                var inCredSize = 0;
+                var inCredBuffer = Marshal.AllocCoTaskMem(0);
+
+                //This should work fine in Windows 10 that only uses the Logon scenario
+                //But it could fail for the workstation unlock scanario on older OS's
+                if (!PInvoke.CredPackAuthenticationBuffer(0, username, password, inCredBuffer, ref inCredSize))
+                {
+                    Marshal.FreeCoTaskMem(inCredBuffer);
+                    inCredBuffer = Marshal.AllocCoTaskMem(inCredSize);
+
+                    if (PInvoke.CredPackAuthenticationBuffer(0, username, password, inCredBuffer, ref inCredSize))
+                    {
+                        ppszOptionalStatusText = string.Empty;
+                        pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
+
+                        //Better to move the CLSID to a constant (but currently used in the .reg file)
+                        pcpcs.clsidCredentialProvider = Guid.Parse("00006d50-0000-0000-b090-00006b0b0000");
+                        pcpcs.rgbSerialization = inCredBuffer;
+                        pcpcs.cbSerialization = (uint)inCredSize;
+                        pcpcs.ulAuthenticationPackage = authPackage;
+
+                        return HRESULT.S_OK;
+                    }
+
+                    ppszOptionalStatusText = "Failed to pack credentials";
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
+                    return HRESULT.E_FAIL;
+                }
+            }
+            //Implement code to change password here. This is not handled natively.
+            else if (usage == _CREDENTIAL_PROVIDER_USAGE_SCENARIO.CPUS_CHANGE_PASSWORD)
+            {
+                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_FINISHED;
+                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION();
+                ppszOptionalStatusText = "Password changed success message.";
+                pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
+            }
+
+            Logger.Write("Returning S_OK");
             return HRESULT.S_OK;
         }
 
@@ -214,30 +274,11 @@ namespace CredProvider.NET
 
         public virtual int GetUserSid(out string sid)
         {
-            var identity = WindowsIdentity.GetCurrent();
+            Logger.Write();
 
-            if (!identity.IsAuthenticated || identity.IsSystem)
-            {
-                sid = null;
-                return HRESULT.S_FALSE;
-            }
+            sid = this.sid;
 
-            sid = identity.User.ToString();
-
-            Logger.Write($"Identity: {identity.Name}");
-
-            foreach (var claim in identity.Claims)
-            {
-                string type = claim.Type;
-
-                if (claim.Type.LastIndexOf('/') >= 0)
-                {
-                    type = claim.Type.Substring(claim.Type.LastIndexOf('/') + 1);
-                }
-
-                Logger.Write($"{type}: {claim.Value}");
-            }
-
+            Console.WriteLine($"Returning sid: {sid}");
             return HRESULT.S_OK;
         }
     }

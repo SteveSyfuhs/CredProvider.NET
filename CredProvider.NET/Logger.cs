@@ -6,6 +6,9 @@ namespace CredProvider.NET
 {
     internal static class Logger
     {
+        private static string path;
+        private static readonly object signal = new object();
+
         static Logger()
         {
             AppDomain.CurrentDomain.UnhandledException += (s, e) =>
@@ -43,7 +46,28 @@ namespace CredProvider.NET
                 log += " " + line;
             }
 
-            Console.WriteLine(log);
+            //Just in case multiple threads try to write to the log
+            lock (signal)
+            {
+                var filePath = GetFilePath();
+
+                Console.WriteLine(log);
+                File.AppendAllText(filePath, log + Environment.NewLine);
+            }
+        }
+
+        private static string GetFilePath()
+        {
+            if (path == null)
+            {
+                var folder = $"{Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).FullName}\\Logs\\CredProviderNET";
+
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                path = $"{folder}\\Log-{DateTime.Now.Ticks}.txt";
+            }
+
+            return path;
         }
     }
 }
