@@ -35,8 +35,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CredProvider.NET.Interop">
-      <HintPath>..\midl\CredProvider.NET.Interop.dll</HintPath>
+    <Reference Include="CredProvider.NET.Interop2">
+      <HintPath>..\midl\CredProvider.NET.Interop2.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="System" />
@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="CredentialFlag.cs" />
     <Compile Include="CredentialProvider.cs" />
@@ -57,10 +58,14 @@
     <Compile Include="CredentialProviderCredential.cs" />
     <Compile Include="CredentialView.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="PInvoke.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="install.reg" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="tile-icon.bmp" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
