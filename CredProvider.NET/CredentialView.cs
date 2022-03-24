@@ -29,16 +29,16 @@ namespace CredProvider.NET
 
         public int DescriptorCount { get { return fields.Count; } }
 
-        public virtual int CredentialCount { get { return 1; } }
+        public int CredentialCount { get { return 1; } }
 
-        public virtual int DefaultCredential { get { return 0; } }        
+        public int DefaultCredential { get { return 0; } }        
 
         public CredentialView(CredentialProviderBase provider) 
         {
             Provider = provider;
         }
 
-        public virtual void AddField(
+        public void AddField(
             _CREDENTIAL_PROVIDER_FIELD_TYPE cpft,
             string pszLabel,
             _CREDENTIAL_PROVIDER_FIELD_STATE state,
@@ -65,7 +65,7 @@ namespace CredProvider.NET
             });
         }
 
-        public virtual bool GetField(int dwIndex, [Out] IntPtr ppcpfd)
+        public bool GetField(int dwIndex, [Out] IntPtr ppcpfd)
         {
             Logger.Write($"dwIndex: {dwIndex}; descriptors: {fields.Count}");
 
@@ -113,7 +113,7 @@ namespace CredProvider.NET
         private readonly Dictionary<int, ICredentialProviderCredential> credentials
             = new Dictionary<int, ICredentialProviderCredential>();
 
-        public virtual ICredentialProviderCredential CreateCredential(int dwIndex)
+        public ICredentialProviderCredential CreateCredential(int dwIndex)
         {
             Logger.Write();
 
