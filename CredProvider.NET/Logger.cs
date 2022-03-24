@@ -60,7 +60,7 @@ namespace CredProvider.NET
         {
             if (path == null)
             {
-                var folder = $"{Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).FullName}\\Logs\\CredProviderNET";
+                var folder = $"{Environment.GetFolderPath(Environment.SpecialFolder.Windows)}\\Logs\\CredProviderNET";
 
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
